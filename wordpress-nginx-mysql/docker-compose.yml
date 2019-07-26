@@ -1,0 +1,52 @@
+version: '2'
+
+services:
+  db:
+    image: "mysql:${MYSQL_VERSION:-5.7}"
+    restart: always
+    volumes:
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+      - ./mysql/lib:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWROD:-password}"
+      MYSQL_USER: "${WP_DB_USER:-wp_admin}"
+      MYSQL_PASSWORD: "${WP_DB_PASSWORD:-password}"
+      MYSQL_DATABASE: "${WP_DB_NAME:-wordpress}"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "${PMA_PORT:-3000}:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWROD:-password}"
+    depends_on:
+      - db
+
+  nginx:
+    image: "nginx:${NGINX_VERSION:-1.17-alpine}"
+    restart: always
+    ports:
+      - "${NGINX_PORT:-8000}:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./logs/nginx:/var/log/nginx
+      - ./wordpress:/var/www/html
+    depends_on:
+      - wordpress
+
+  wordpress:
+    image: "wordpress:${WP_VERSION:-5-php7.2-fpm-alpine}"
+    restart: always
+    volumes:
+      - ./wordpress:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: "${WP_DB_USER:-wp_admin}"
+      WORDPRESS_DB_PASSWORD: "${WP_DB_PASSWORD:-password}"
+      WORDPRESS_DB_NAME: "${WP_DB_NAME:-wordpress}"
+    depends_on:
+      - db
+
